@@ -22,13 +22,54 @@ document.querySelectorAll('.hash-cell').forEach(hashCell => {
         if (!clickedOnCell) {
             clickedOnCell = true;
             const text = e.target.textContent.trim();
-            navigator.clipboard.writeText(text).then(() => {
-                e.target.textContent = 'copied to clipboard';
-                setTimeout(() => {
-                    e.target.textContent = text;
-                    clickedOnCell = false;
-                }, 1000);
-            })
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    e.target.textContent = 'copied to clipboard'; // TODO: refactor this part
+                    setTimeout(() => {
+                        e.target.textContent = text;
+                        clickedOnCell = false;
+                    }, 1000);
+                })
+            } else {
+                fallbackCopyTextToClipboard(text, () => {
+                    e.target.textContent = 'copied to clipboard'; // TODO: duplicate
+                    setTimeout(() => {
+                        e.target.textContent = text;
+                        clickedOnCell = false;
+                    }, 1000);
+                });
+            }
         }
     });
 });
+
+
+function fallbackCopyTextToClipboard(text, callback) {
+    // 1. Створюємо тимчасовий елемент textarea
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // 2. Робимо його невидимим, але залишаємо в DOM (щоб можна було виділити)
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    document.body.appendChild(textArea);
+
+    // 3. Виділяємо текст всередині
+    textArea.focus();
+    textArea.select();
+
+    try {
+        // 4. Виконуємо команду копіювання
+        const successful = document.execCommand('copy');
+        const msg = successful ? 'успішно' : 'не вдалося';
+        console.log('Копіювання через execCommand: ' + msg);
+    } catch (err) {
+        console.error('Помилка копіювання:', err);
+    }
+
+    // 5. Видаляємо тимчасовий елемент
+    document.body.removeChild(textArea);
+    callback();
+}
