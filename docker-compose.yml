@@ -1,0 +1,53 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: lab2_mysql
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - lab2-network
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-ulab2_user", "-plab2_pass" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    networks:
+      - lab2-network
+    container_name: lab2_phpmyadmin
+    ports:
+      - "8081:80"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  php:
+    build: ./php
+    container_name: lab2_php
+    restart: unless-stopped
+    networks:
+      - lab2-network
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+
+volumes:
+  db_data:
+networks:
+  lab2-network:
